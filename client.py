@@ -1,36 +1,29 @@
 import requests
 import base64
-import os
 import uuid
 import sys
-
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
-
-def upload_image(image_path, endpoint):
-    image_id = str(uuid.uuid4())
-    image_data = encode_image(image_path)
-    
-    payload = {
-        "id": image_id,
-        "image_data": image_data
-    }
-    
-    response = requests.post(endpoint, json=payload)
-    try:
-        return response.json()
-    except requests.exceptions.JSONDecodeError:
-        print(f"Failed to decode JSON response for image {image_id}")
-        print(f"Response content: {response.content}")
-        return None
+import os
+import json
 
 if __name__ == '__main__':
-    input_folder = sys.argv[1]
+    images = sys.argv[1]
     endpoint = sys.argv[2]
-    
-    for image_file in os.listdir(input_folder):
-        image_path = os.path.join(input_folder, image_file)
-        result = upload_image(image_path, endpoint)
-        if result:
-            print(result)
+    total_time = 0
+    total_img = 0
+
+    for file in os.listdir(images):
+        image_path = os.path.join(images, file)
+        with open(image_path, "rb") as file:
+            image_data = base64.b64encode(file.read()).decode('utf-8')
+        image_id = str(uuid.uuid4())
+        data = {"id": image_id, "image_data": image_data}
+        response = requests.post(endpoint, json=data)
+        result = response.json()
+        total_time = (total_time + result['inference_time'])
+        total_img = total_img + 1
+        print(json.dumps(result))
+
+    averageTime = total_time / total_img
+    print(f"Average inference time: {averageTime:.4f} seconds")
+
+
